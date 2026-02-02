@@ -7,4 +7,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = "lavalink-spectrogram"
+rootProject.name = "lavaspectro"
