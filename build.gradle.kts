@@ -28,10 +28,10 @@ repositories {
 }
 
 dependencies {
-    implementation("dev.arbjerg.lavalink:plugin-api:4.1.2")
+    compileOnly("dev.arbjerg.lavalink:plugin-api:4.1.2")
     implementation("org.apache.commons:commons-math3:3.6.1")
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    compileOnly("org.jetbrains.kotlin:kotlin-reflect")
+    compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 }
 
 kotlin {
