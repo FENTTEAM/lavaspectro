@@ -9,19 +9,13 @@ plugins {
 group = "team.firefly.lavalink.lavaspectro"
 val baseVersion = "1.0.0"
 
-version = if (project.hasProperty("snapshot")) {
-    try {
-        val process = ProcessBuilder("git", "rev-parse", "--short", "HEAD")
-            .start()
-        val hash = process.inputStream.bufferedReader().readText().trim()
-        if (process.waitFor() == 0) {
-            "$baseVersion-$hash"
-        } else {
-            "$baseVersion-snapshot"
-        }
-    } catch (e: Exception) {
-        "$baseVersion-snapshot"
-    }
+val isSnapshot = project.hasProperty("snapshot") || 
+    System.getenv("GITHUB_REF_NAME") == "snapshot" || 
+    System.getenv("GIT_TAG") == "snapshot" ||
+    System.getenv("VERSION") == "snapshot"
+
+version = if (isSnapshot) {
+    "snapshot"
 } else {
     baseVersion
 }
