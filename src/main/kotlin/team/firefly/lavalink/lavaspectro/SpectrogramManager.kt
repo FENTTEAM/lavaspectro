@@ -130,24 +130,23 @@ class SpectrogramManager(
         val magnitudes = DoubleArray(complex.size / 2) { i -> complex[i].abs() }
         val bands = ByteArray(BAND_COUNT)
         
-        val binsPerBand = magnitudes.size / BAND_COUNT
+        val nyquist = localManager.configuration.outputFormat.sampleRate / 2.0
+        val logMin = kotlin.math.log(20.0)
+        val logMax = kotlin.math.log(nyquist)
         
         for (i in 0 until BAND_COUNT) {
-            var sum = 0.0
-            val startBin = i * binsPerBand
-            val endBin = (i + 1) * binsPerBand
+            val targetFreq = kotlin.math.exp(logMin + (logMax - logMin) * i / (BAND_COUNT - 1))
+            val startBin = (targetFreq * magnitudes.size / nyquist).toInt().coerceIn(magnitudes.indices)
+            val endBin = (targetFreq * 1.2 * magnitudes.size / nyquist).toInt().coerceIn(startBin + 1, magnitudes.size)
             
+            var sumPower = 0.0
             for (j in startBin until endBin) {
-                if (j < magnitudes.size) {
-                    sum += magnitudes[j]
-                }
+                val mag = magnitudes[j]
+                sumPower += mag * mag
             }
-            val avg = sum / binsPerBand
-            
-            val power = avg * avg
-            val db = 10 * log10(power + 1e-10)
-            val scaled = (db * 1.2).toInt().coerceIn(0, 255)
-            bands[i] = scaled.toByte()
+            val power = sumPower / (endBin - startBin)
+            val db = 10 * log10(power / WINDOW_SIZE + 1e-10)
+            bands[i] = (db * 1.2).toInt().coerceIn(0, 255).toByte()
         }
         return bands
     }
