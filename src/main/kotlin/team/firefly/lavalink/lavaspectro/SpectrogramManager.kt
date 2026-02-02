@@ -131,8 +131,8 @@ class SpectrogramManager(
         val bands = ByteArray(BAND_COUNT)
         
         val nyquist = localManager.configuration.outputFormat.sampleRate / 2.0
-        val logMin = kotlin.math.log(20.0)
-        val logMax = kotlin.math.log(nyquist)
+        val logMin = kotlin.math.ln(20.0)
+        val logMax = kotlin.math.ln(nyquist)
         
         for (i in 0 until BAND_COUNT) {
             val targetFreq = kotlin.math.exp(logMin + (logMax - logMin) * i / (BAND_COUNT - 1))
