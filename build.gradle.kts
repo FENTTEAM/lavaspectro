@@ -1,4 +1,5 @@
-import java.io.ByteArrayOutputStream
+import java.io.File
+import java.util.concurrent.TimeUnit
 
 plugins {
     kotlin("jvm") version "2.1.0"
@@ -9,44 +10,37 @@ plugins {
 group = "team.firefly.lavalink.lavaspectro"
 val baseVersion = "1.0.0"
 
-val githubHeadRef: String? = System.getenv("GITHUB_HEAD_REF") ?: System.getenv("GITHUB_REF_NAME")
+val githubRef = System.getenv("GITHUB_REF") ?: ""
+val isRelease = githubRef.startsWith("refs/tags/") || project.hasProperty("release")
+val isSnapshot = !isRelease
 
-val isSnapshot = project.hasProperty("snapshot") || 
-    githubHeadRef?.startsWith("refs/heads/") == true
+fun gitSha7(): String {
+    val envSha = System.getenv("GITHUB_SHA")?.trim().orEmpty()
+    if (envSha.isNotBlank()) return envSha.take(7)
 
-// Git commit hash (fixed exec)
-val commitHash = try {
-    val stdout = ByteArrayOutputStream()
-    project.exec {
-        commandLine("git", "rev-parse", "--short=7", "HEAD")
-        standardOutput = stdout
-    }
-    stdout.toString().trim()
-} catch (e: Exception) {
-    "unknown"
+    return runCatching {
+        val proc = ProcessBuilder("git", "rev-parse", "--short=7", "HEAD")
+            .directory(rootDir)
+            .redirectErrorStream(true)
+            .start()
+
+        proc.waitFor(3, TimeUnit.SECONDS)
+        proc.inputStream.bufferedReader().readText().trim().ifBlank { "unknown" }
+    }.getOrDefault("unknown")
 }
 
-// Versions (fixed assignment)
-val mavenSnapshotVersion = if (isSnapshot) "$baseVersion-SNAPSHOT" else baseVersion
-val commitVersion = if (isSnapshot) "$baseVersion+${commitHash}" else baseVersion
+val commitHash = gitSha7()
 
-version = mavenSnapshotVersion
+val snapshotVersion = "$baseVersion-SNAPSHOT"
+val commitVersion = "$baseVersion-$commitHash"
+
+version = if (isSnapshot) snapshotVersion else baseVersion
 
 repositories {
     mavenCentral()
     maven { url = uri("https://maven.lavalink.dev/releases") }
     maven { url = uri("https://maven.lavalink.dev/snapshots") }
     maven { url = uri("https://jitpack.io") }
-    
-    if (project.hasProperty("MAVEN_REPOSITORY")) {
-        maven {
-            url = uri(project.property("MAVEN_REPOSITORY").toString())
-            credentials {
-                username = project.findProperty("MAVEN_USERNAME") as? String ?: ""
-                password = project.findProperty("MAVEN_TOKEN") as? String ?: ""
-            }
-        }
-    }
 }
 
 dependencies {
@@ -71,32 +65,32 @@ tasks.jar {
 
 publishing {
     publications {
-        // SNAPSHOT (auto-newest)
-        create<MavenPublication>("snapshot") {
-            version = mavenSnapshotVersion  // Direct assignment
+        create<MavenPublication>("maven") {
             from(components["java"])
         }
-        
-        // Commit-specific
-        create<MavenPublication>("commit") {
-            version = commitVersion  // Direct assignment
-            from(components["java"])
-            artifact(tasks.jar.get()) {
-                classifier = "commit-${commitHash}"
+
+        if (isSnapshot) {
+            create<MavenPublication>("commit") {
+                from(components["java"])
+                version = commitVersion
             }
         }
     }
-    
+
     repositories {
-        if (System.getenv("MAVEN_REPOSITORY") != null || project.hasProperty("MAVEN_REPOSITORY")) {
-            create<MavenArtifactRepository>("reposilite") {
-                val repoUrl = System.getenv("MAVEN_REPOSITORY")?.takeIf { it.isNotBlank() } 
-                    ?: project.property("MAVEN_REPOSITORY").toString()
-                val finalUrl = if (isSnapshot) "$repoUrl/snapshots" else "$repoUrl/releases"
-                url = uri(finalUrl)
-                credentials {
-                    username = System.getenv("MAVEN_USERNAME") ?: (project.findProperty("MAVEN_USERNAME") as? String ?: "")
-                    password = System.getenv("MAVEN_TOKEN") ?: (project.findProperty("MAVEN_TOKEN") as? String ?: "")
+        val repoUrl = System.getenv("MAVEN_REPOSITORY")?.trim().orEmpty()
+        val user = System.getenv("MAVEN_USERNAME")?.trim().orEmpty()
+        val token = System.getenv("MAVEN_TOKEN")?.trim().orEmpty()
+
+        if (repoUrl.isNotBlank()) {
+            maven {
+                name = "Remote"
+                url = uri(repoUrl)
+                if (user.isNotBlank() || token.isNotBlank()) {
+                    credentials {
+                        username = user
+                        password = token
+                    }
                 }
             }
         }
@@ -104,5 +98,5 @@ publishing {
 }
 
 tasks.register("printVersion") {
-    doLast { println(version) }
+    doLast { println(project.version.toString()) }
 }
