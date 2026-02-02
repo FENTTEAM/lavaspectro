@@ -103,6 +103,7 @@ class SpectrogramManager(
                     buffer[bufferIdx++] = sample
                     if (bufferIdx >= WINDOW_SIZE) {
                         val fftData = DoubleArray(WINDOW_SIZE) { i -> buffer[i].toDouble() }
+                        applyHann(fftData)
                         val complex = transformer.transform(fftData, TransformType.FORWARD)
                         val bands = processBands(complex)
                         spectrogram.add(bands)
@@ -116,6 +117,12 @@ class SpectrogramManager(
             
         } finally {
             player.destroy()
+        }
+    }
+
+    private fun applyHann(window: DoubleArray) {
+        for (i in window.indices) {
+            window[i] *= 0.5 * (1 - kotlin.math.cos(2 * kotlin.math.PI * i / (WINDOW_SIZE - 1)))
         }
     }
 
@@ -137,8 +144,9 @@ class SpectrogramManager(
             }
             val avg = sum / binsPerBand
             
-            val db = 20 * log10(avg + 1)
-            val scaled = (db * 2.55).toInt().coerceIn(0, 255)
+            val power = avg * avg
+            val db = 10 * log10(power + 1e-10)
+            val scaled = (db * 1.2).toInt().coerceIn(0, 255)
             bands[i] = scaled.toByte()
         }
         return bands
