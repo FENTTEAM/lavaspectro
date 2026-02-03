@@ -11,7 +11,7 @@ group = "team.firefly.lavalink.lavaspectro"
 val baseVersion = "1.0.0"
 
 val githubRef = System.getenv("GITHUB_REF").orEmpty()
-val isRelease = githubRef.startsWith("refs/tags/") || project.hasProperty("release")
+val isRelease = githubRef.startsWith("refs/tags/")
 val isSnapshot = !isRelease
 
 val commitHash7: String =
@@ -40,9 +40,7 @@ dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 }
 
-kotlin {
-    jvmToolchain(21)
-}
+kotlin { jvmToolchain(21) }
 
 lavalinkPlugin {
     name.set("lavaspectro")
@@ -70,13 +68,9 @@ publishing {
     }
 
     publications {
-        val basePub = (findByName("maven") as? MavenPublication)
-            ?: create<MavenPublication>("maven") { }
-
-        basePub.apply {
+        withType<MavenPublication>().configureEach {
             groupId = project.group.toString()
             artifactId = "lavaspectro"
-            from(components["java"])
         }
 
         if (isSnapshot) {
