@@ -30,8 +30,8 @@ To use the official stable release:
 ```yaml
 lavalink:
   plugins:
-    - dependency: "com.github.fireflyteam:lavaspectro:1.0.0"
-      repository: "https://jitpack.io"
+    - dependency: "team.firefly.lavalink.lavaspectro:lavaspectro-plugin:1.0.0"
+      repository: "https://maven.xserv.pp.ua/releases"
 
 ```
 
@@ -42,8 +42,8 @@ To use the latest development build generated on every push:
 ```yaml
 lavalink:
   plugins:
-    - dependency: "com.github.fireflyteam:lavaspectro:snapshot"
-      repository: "https://jitpack.io"
+    - dependency: "team.firefly.lavalink.lavaspectro:lavaspectro-plugin:1.0.0-SNAPSHOT"
+      repository: "https://maven.xserv.pp.ua/snapshots"
       snapshot: true
 
 ```
